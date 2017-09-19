@@ -62,7 +62,7 @@ class TextClassifyCnnModel:
                     shape=[self.vocabulary_size, self.embedding_size],
                     dtype=tf.float32, trainable=True,
                     initializer=tf.random_normal_initializer(stddev=0.01))
-            is_training = tf.get_variable(name="training", shape=[],
+            self.is_training = tf.get_variable(name="training", shape=[],
                     dtype=tf.bool,
                     initializer=tf.constant_initializer(True),
                     trainable=False)
@@ -80,7 +80,7 @@ class TextClassifyCnnModel:
 
                 if using_bn:
                     conv_bn = tf.layers.batch_normalization(conv,
-                    name="bn%d" % i, training=is_training)
+                    name="bn%d" % i, training=self.is_training)
                 else:
                     conv_bn = conv
 
@@ -114,7 +114,7 @@ class TextClassifyCnnModel:
                 conv_outputs.append(pooling)
 
             convs = tf.concat(conv_outputs, axis=-1)
-            convs_dropout = tf.layers.dropout(convs, rate=0.4, training=is_training)
+            convs_dropout = tf.layers.dropout(convs, rate=0.5, training=self.is_training)
 
             if using_chunk:
                 w = tf.get_variable(name="dense_w", shape=[2 * len(self.filter_list) *
@@ -129,23 +129,30 @@ class TextClassifyCnnModel:
                 dtype=tf.float32,
                 initializer=tf.random_normal_initializer(stddev=0.01))
 
-            logits = tf.nn.relu(tf.matmul(convs_dropout, w) + b)
+            logits = tf.matmul(convs_dropout, w) + b
 
         with tf.variable_scope("prediction"):
             softmax = tf.nn.softmax(logits)
             self.prediction = tf.squeeze(tf.argmax(logits, 1), name="class")
             self.prediction_prob = tf.gather(softmax, self.prediction, axis=-1,
                 name = "class_prob")
-            self.accuray = tf.reduce_mean(tf.cast(tf.equal(self.prediction,
+            self.accuracy = tf.reduce_mean(tf.cast(tf.equal(self.prediction,
                 tf.cast(self.y_holder,
-                tf.int64)), tf.float32), name="accuray")
+                tf.int64)), tf.float32), name="accuracy")
 
         with tf.variable_scope("loss"):
             self.loss = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(labels=self.y_holder,
                     logits=logits, name="loss"))
             with tf.control_dependencies(tf.get_collection(tf.GraphKeys.UPDATE_OPS)):
-                optimizer = tf.train.AdamOptimizer(learning_rate=0.001)
-                self.train_op = optimizer.minimize(self.loss, name="train_op")
+                self.global_step = tf.Variable(0, trainable=False)
+                self.learning_rate = tf.Variable(0.001, trainable=False)
+                learning_rate = tf.train.exponential_decay(self.learning_rate,
+                        self.global_step, 400, 0.8)
+                self.train_op = tf.contrib.layers.optimize_loss(self.loss,
+                        global_step = self.global_step,
+                        learning_rate = learning_rate, optimizer="Adam")
+                #optimizer = tf.train.AdamOptimizer(learning_rate=0.001)
+                #self.train_op = optimizer.minimize(self.loss, name="train_op")
 
     def create_inference_graph(self):
         pass
