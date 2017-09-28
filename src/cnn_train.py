@@ -95,7 +95,7 @@ class TextClassifyTrainer:
 
                     print("loss {} @ step {}".format(loss_val, global_step))
 
-                    saver.save(sess, "log/cnn_model", global_step=global_step)
+                    #saver.save(sess, "log/cnn_model", global_step=global_step)
                     global_step += 1
 
                     if global_step % 100 == 0:
@@ -323,11 +323,11 @@ def freeze_model(trained_model_path, final_model_path):
 if __name__ == "__main__":
     trainer = TextClassifyTrainer("data/domain324.train.seg2",
         "data/domain324.test.seg2", "model/vectors.bin")
-    #trainer.train(45, 128)
+    trainer.train(45, 128)
     #freeze_model("log", "model/cnn_model.pb")
 
-    trainer.load_lexicon("log/lexicon")
-    x_inputs, y_inputs = trainer.convert_data_to_model_input(trainer.test_data,
-            add_unknow_words=False)
-    test_with_freeze_model(x_inputs, y_inputs, "model/cnn_model.pb")
+    #trainer.load_lexicon("log/lexicon")
+    #x_inputs, y_inputs = trainer.convert_data_to_model_input(trainer.test_data,
+    #        add_unknow_words=False)
+    #test_with_freeze_model(x_inputs, y_inputs, "model/cnn_model.pb")
     #test_with_latest_chk(trainer, "log")

@@ -123,7 +123,7 @@ class TextClassifyCnnModel:
             else:
                 w = tf.get_variable(name="dense_w", shape=[len(self.filter_list) *
                     self.filter_size, self.class_label_size], dtype=tf.float32,
-                    initializer=tf.random_normal_initializer(stddev=0.01))
+                    initializer=tf.random_normal_initializer(stddev=0.1))
 
             b = tf.get_variable(name="dense_b", shape=[self.class_label_size],
                 dtype=tf.float32,
